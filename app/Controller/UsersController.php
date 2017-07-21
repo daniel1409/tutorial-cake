@@ -1,22 +1,26 @@
 <?php
-class UsersController extends AppController {
+App::uses('AppController', 'Controller');
+
+class UsersController extends AppController{
 
     public function beforeFilter() {
         parent::beforeFilter();
-        $this->Auth->allow('add');
+        // Allow users to register and logout
+        $this->Auth->allow('add', 'logout');
     }
 
     public function login() {
-    if ($this->Auth->login()) {
-        $this->redirect($this->Auth->redirect());
-    } else {
-        $this->Flash->error(__('Invalid username or password, try again'));
+        if ($this->request->is('post')) {
+            if ($this->Auth->login()) {
+                return $this->redirect($this->Auth->redirectUrl());
+            }
+            $this->Flash->error(__('Invalid username or password. Try Again'));
+        }
     }
-	}
 
-	public function logout() {
-    $this->redirect($this->Auth->logout());
-	}
+    public function logout() {
+        return $this->redirect($this->Auth->logout());
+    }
 
     public function index() {
         $this->User->recursive = 0;
@@ -24,8 +28,9 @@ class UsersController extends AppController {
     }
 
     public function view($id = null) {
-        if (!$this->User->exists($id)) {
-            throw new NotFoundException(__('Invalid user'));
+        $this->User->id = $id;
+        if(!$this->User->exists()) {
+            throw new NotFoundException(__("Invalid User"));
         }
         $this->set('user', $this->User->findById($id));
     }
@@ -34,26 +39,24 @@ class UsersController extends AppController {
         if ($this->request->is('post')) {
             $this->User->create();
             if ($this->User->save($this->request->data)) {
-                $this->Flash->success(__('The user has been saved'));
-                $this->redirect(array('action' => 'index'));
-            } else {
-                $this->Flash->error(__('The user could not be saved. Please, try again.'));
+                $this->Flash->success(__('User created'));
+                return $this->redirect(array('action' => 'index'));
             }
+            $this->Flash->error(__('User could not be created. Try Again'));
         }
     }
 
     public function edit($id = null) {
         $this->User->id = $id;
-        if (!$this->User->exists()) {
-            throw new NotFoundException(__('Invalid user'));
+        if (!$this->User->exists()){
+            throw new NotFoundException(__('Invalid User'));
         }
         if ($this->request->is('post') || $this->request->is('put')) {
-            if ($this->User->save($this->request->data)) {
-                $this->Flash->success(__('The user has been saved'));
-                $this->redirect(array('action' => 'index'));
-            } else {
-                $this->Flash->error(__('The user could not be saved. Please, try again.'));
+            if ($this->User->save($this->request->data)){
+                $this->Flash->success(__('User updated'));
+                return $this->redirect(array('action' => 'index'));
             }
+            $this->Flash->error(__('User could not be updated. Try Again'));
         } else {
             $this->request->data = $this->User->findById($id);
             unset($this->request->data['User']['password']);
@@ -61,22 +64,19 @@ class UsersController extends AppController {
     }
 
     public function delete($id = null) {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
+        $this->request->allowMethod('post');
+
         $this->User->id = $id;
-        if (!$this->User->exists()) {
+        if (!$this->User->exists()){
             throw new NotFoundException(__('Invalid user'));
         }
         if ($this->User->delete()) {
             $this->Flash->success(__('User deleted'));
-            $this->redirect(array('action' => 'index'));
+            return $this->redirect(array('action' => 'index'));
         }
-        $this->Flash->error(__('User was not deleted'));
-        $this->redirect(array('action' => 'index'));
+        $this->Flash->error(__('User could not be deleted. Try Again'));
+        return $this->redirect(array('action' => 'index'));
     }
 
-    public function isAuthorized($user){
-        return true;
-    }
- }   
+}
+?>
